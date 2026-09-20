@@ -3,6 +3,12 @@ description: Report a bug with the Salesforce CLI
 title: "[Bug]: "
 labels: ["type:bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        > **NOTICE:** GitHub is not a mechanism for receiving support under any agreement or SLA.
+        > If you require immediate assistance, please use [official support channels](https://help.salesforce.com).
+
   - type: input
     id: command
     attributes:
@@ -32,6 +38,15 @@ body:
       description: Short description of the problem
     validations:
       required: true
+
+  - type: input
+    id: repro-repo
+    attributes:
+      label: Repository to reproduce
+      description: "If not reproducible with [dreamhouse-lwc](https://github.com/dreamhouseapp/dreamhouse-lwc), we require a link to a simple project repo with a script to setup a scratch org that reproduces your problem."
+      placeholder: "https://github.com/dreamhouseapp/dreamhouse-lwc"
+    validations:
+      required: false
 
   - type: textarea
     id: steps
