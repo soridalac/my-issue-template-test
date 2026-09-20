@@ -110,6 +110,8 @@ jobs:
               'org:production':         { color: '0e8a16', description: 'Production org' },
               'regression':             { color: 'd93f0b', description: 'Worked before, now broken' },
               'needs-info':             { color: 'fbca04', description: 'Missing required information' },
+              'owned by another team':  { color: 'e99695', description: 'Bug is owned by another team' },
+              'possibly:server-side':   { color: 'e99695', description: 'May be a server-side issue, not CLI' },
             };
 
             // --- Ensure labels exist with correct colors ---
@@ -181,6 +183,11 @@ jobs:
             }
 
             // Plugin-specific ownership hints
+            const otherTeamPlugins = ['plugin:agent', 'plugin:devops-center', 'plugin:signups', 'plugin:packaging'];
+            if (otherTeamPlugins.includes(pluginLabel)) {
+              labels.push('owned by another team');
+            }
+
             if (pluginLabel === 'plugin:agent') {
               comments.push(
                 `ℹ️ Agent commands are owned by the Agentforce DX team. ` +
@@ -227,22 +234,24 @@ jobs:
               });
             }
 
-            // --- Apply any new labels (possibly:server-side) ---
-            const newLabels = labels.filter(l => l === 'possibly:server-side');
-            if (newLabels.length > 0) {
-              const pssConfig = { color: 'e99695', description: 'May be a server-side issue, not CLI' };
+            // --- Apply any late-added labels ---
+            const lateLabels = [...new Set(labels.filter(l => l === 'possibly:server-side' || l === 'owned by another team'))];
+            for (const name of lateLabels) {
+              const config = labelColors[name] || { color: 'ededed', description: '' };
               try {
-                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side' });
-                await github.rest.issues.updateLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side', ...pssConfig });
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name });
+                await github.rest.issues.updateLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color: config.color, description: config.description });
               } catch (e) {
                 if (e.status === 404) {
-                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side', ...pssConfig });
+                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color: config.color, description: config.description });
                 }
               }
+            }
+            if (lateLabels.length > 0) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                labels: ['possibly:server-side'],
+                labels: lateLabels,
               });
             }
