@@ -79,6 +79,11 @@ body:
     validations:
       required: true
 
+  - type: markdown
+    attributes:
+      value: |
+        > **Tip:** Use `sf doctor --create-issue` to automatically fill in the required system information.
+
   - type: textarea
     id: expected
     attributes:
