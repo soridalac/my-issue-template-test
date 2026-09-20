@@ -102,17 +102,6 @@ body:
     validations:
       required: true
 
-  - type: dropdown
-    id: doctor
-    attributes:
-      label: Did you run sf doctor?
-      options:
-        - "Yes - passed"
-        - "Yes - failed"
-        - "No"
-    validations:
-      required: false
-
   - type: textarea
     id: additional
     attributes:
