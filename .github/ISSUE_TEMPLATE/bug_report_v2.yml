@@ -13,11 +13,20 @@ body:
   - type: checkboxes
     id: existing-issue
     attributes:
-      label: Is there an existing issue for this?
+      label: Existing issues
       description: Please search [existing issues](https://github.com/forcedotcom/cli/issues) before filing a new one.
       options:
         - label: I have searched the existing issues
           required: true
+
+  - type: input
+    id: related-issue
+    attributes:
+      label: Related issue
+      description: If you found a related issue, link it here.
+      placeholder: "https://github.com/forcedotcom/cli/issues/1234"
+    validations:
+      required: false
 
   - type: input
     id: command
@@ -88,7 +97,7 @@ body:
     id: error-output
     attributes:
       label: Error Message or Output
-      description: Paste the full error message, stack trace, or unexpected output. This will be automatically formatted into code.
+      description: Paste the full error message, stack trace, or unexpected output. For more detail, re-run your command with `--dev-debug` and paste the output. **Redact any tokens or sensitive information.** This will be automatically formatted into code.
       render: shell
     validations:
       required: false
