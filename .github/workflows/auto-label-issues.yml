@@ -176,47 +176,31 @@ jobs:
 
             if (matchedServerError) {
               labels.push('possibly:server-side');
+            }
+
+            // Plugin-specific ownership
+            const teamOwnership = {
+              'plugin:agent': 'Agentforce DX',
+              'plugin:devops-center': 'DevOps',
+              'plugin:signups': 'Signups',
+              'plugin:packaging': 'Packaging',
+            };
+
+            const owningTeam = teamOwnership[pluginLabel];
+
+            if (owningTeam) {
+              labels.push('owned by another team');
+
+              let msg = `ℹ️ This command is owned by the **${owningTeam}** team.`;
+              if (matchedServerError) {
+                msg += ` The error \`${matchedServerError}\` also suggests this may be a server-side issue.`;
+              }
+              msg += ` We'll investigate and route accordingly.`;
+              comments.push(msg);
+            } else if (matchedServerError) {
               comments.push(
                 `⚠️ The error \`${matchedServerError}\` typically originates from the Salesforce server, not the CLI. ` +
                 `We'll investigate to confirm, but this may need to be reported to [Salesforce Support](https://help.salesforce.com) if it's a server-side issue.`
-              );
-            }
-
-            // Plugin-specific ownership hints
-            const otherTeamPlugins = ['plugin:agent', 'plugin:devops-center', 'plugin:signups', 'plugin:packaging'];
-            if (otherTeamPlugins.includes(pluginLabel)) {
-              labels.push('owned by another team');
-            }
-
-            if (pluginLabel === 'plugin:agent') {
-              comments.push(
-                `ℹ️ Agent commands are owned by the Agentforce DX team. ` +
-                `If the error originates from the Agentforce platform APIs, this may need to be routed to them. ` +
-                `We'll investigate and route accordingly.`
-              );
-            }
-
-            if (pluginLabel === 'plugin:devops-center') {
-              comments.push(
-                `ℹ️ DevOps Center commands are owned by the DevOps team. ` +
-                `If the error originates from the DevOps Center service, this may need to be routed to them. ` +
-                `We'll investigate and route accordingly.`
-              );
-            }
-
-            if (pluginLabel === 'plugin:signups') {
-              comments.push(
-                `ℹ️ Scratch org, sandbox, shape, and snapshot creation are managed by the Signups service. ` +
-                `If the error originates from the server during org creation, this may need to be routed to the Signups team. ` +
-                `We'll investigate and route accordingly.`
-              );
-            }
-
-            if (pluginLabel === 'plugin:packaging') {
-              comments.push(
-                `ℹ️ Packaging commands are owned by the Packaging team. ` +
-                `If the error originates from the packaging service, this may need to be routed to them. ` +
-                `We'll investigate and route accordingly.`
               );
             }
 
