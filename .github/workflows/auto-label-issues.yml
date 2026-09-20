@@ -15,12 +15,19 @@ jobs:
           script: |
             const body = context.payload.issue.body || '';
             const labels = [];
+            const comments = [];
+
+            // =====================
+            // 1. DETECTION (all labels gathered before any apply)
+            // =====================
 
             // --- Parse command → plugin label ---
             const commandMatch = body.match(/### Command\s*\n\s*(.+)/);
             const command = commandMatch ? commandMatch[1].trim().toLowerCase() : '';
 
             const commandToPlugin = {
+              'project deploy pipeline': 'plugin:devops-center',
+              'project deploy validate': 'plugin:devops-center',
               'project deploy': 'plugin:deploy-retrieve',
               'project retrieve': 'plugin:deploy-retrieve',
               'project convert': 'plugin:deploy-retrieve',
@@ -50,8 +57,6 @@ jobs:
               'apex get': 'plugin:apex',
               'apex log': 'plugin:apex',
               'apex test': 'plugin:apex',
-              'project deploy pipeline': 'plugin:devops-center',
-              'project deploy validate': 'plugin:devops-center',
               'devops': 'plugin:devops-center',
               'package': 'plugin:packaging',
               'agent': 'plugin:agent',
@@ -60,7 +65,6 @@ jobs:
               'sobject': 'plugin:sobject',
             };
 
-            // Match longest prefix first
             const sortedKeys = Object.keys(commandToPlugin).sort((a, b) => b.length - a.length);
             for (const key of sortedKeys) {
               if (command.includes(key)) {
@@ -68,6 +72,8 @@ jobs:
                 break;
               }
             }
+
+            const pluginLabel = labels.find(l => l.startsWith('plugin:'));
 
             // --- Parse org type ---
             const orgMatch = body.match(/### Org Type\s*\n\s*(.+)/);
@@ -82,6 +88,37 @@ jobs:
             const regression = regressionMatch ? regressionMatch[1].trim() : '';
 
             if (regression.startsWith('Yes')) labels.push('regression');
+
+            // --- Detect server-side error patterns ---
+            const serverSidePatterns = [
+              'UNKNOWN_EXCEPTION',
+              'Internal Salesforce Error',
+              'INSUFFICIENT_ACCESS',
+              'INVALID_OPERATION',
+              'INVALID_SESSION_ID',
+              'SERVER_UNAVAILABLE',
+              'REQUEST_LIMIT_EXCEEDED',
+            ];
+            const bodyUpper = body.toUpperCase();
+            const matchedServerError = serverSidePatterns.find(p => bodyUpper.includes(p.toUpperCase()));
+
+            if (matchedServerError) {
+              labels.push('possibly:server-side');
+            }
+
+            // --- Detect team ownership ---
+            const teamOwnership = {
+              'plugin:agent': 'Agentforce DX',
+              'plugin:devops-center': 'DevOps',
+              'plugin:signups': 'Signups',
+              'plugin:packaging': 'Packaging',
+            };
+
+            const owningTeam = teamOwnership[pluginLabel];
+
+            if (owningTeam) {
+              labels.push('owned by another team');
+            }
 
             // --- Check for low-quality or missing required fields ---
             const lowEffortPatterns = /^(n\/?a|na|none|no|test|asdf|xxx|\.|-|—|tbd|todo|see above|see title|same)$/i;
@@ -119,8 +156,12 @@ jobs:
 
             if (missingFields.length > 0) labels.push('needs-info');
 
-            // --- Label colors ---
+            // =====================
+            // 2. APPLY LABELS (single pass, all labels at once)
+            // =====================
+
             const labelColors = {
+              'type:bug':               { color: 'd73a4a', description: 'Something is not working' },
               'plugin:deploy-retrieve': { color: '1d76db', description: 'Deploy and retrieve commands' },
               'plugin:auth':            { color: '1d76db', description: 'Auth and login commands' },
               'plugin:org':             { color: '1d76db', description: 'Org management commands' },
@@ -142,83 +183,64 @@ jobs:
               'possibly:server-side':   { color: 'e99695', description: 'May be a server-side issue, not CLI' },
             };
 
-            // --- Ensure labels exist with correct colors ---
-            if (labels.length > 0) {
-              const uniqueLabels = [...new Set(labels)];
+            const uniqueLabels = [...new Set(labels)];
 
-              for (const name of uniqueLabels) {
-                const config = labelColors[name] || { color: 'ededed', description: '' };
-                try {
-                  await github.rest.issues.getLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name,
-                  });
-                  // Label exists — update color if needed
-                  await github.rest.issues.updateLabel({
+            // Ensure all labels exist with correct colors
+            for (const name of uniqueLabels) {
+              const config = labelColors[name] || { color: 'ededed', description: '' };
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                });
+                await github.rest.issues.updateLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  color: config.color,
+                  description: config.description,
+                });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     name,
                     color: config.color,
                     description: config.description,
                   });
-                } catch (e) {
-                  if (e.status === 404) {
-                    await github.rest.issues.createLabel({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      name,
-                      color: config.color,
-                      description: config.description,
-                    });
-                  }
                 }
               }
+            }
 
-              // --- Apply labels ---
+            // Also ensure type:bug has correct color (added by form, not by us)
+            try {
+              await github.rest.issues.updateLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'type:bug',
+                color: 'd73a4a',
+                description: 'Something is not working',
+              });
+            } catch (e) {}
+
+            // Apply all labels at once
+            if (uniqueLabels.length > 0) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
                 labels: uniqueLabels,
               });
-              console.log(`Applied labels: ${uniqueLabels.join(', ')}`);
             }
 
-            // --- Auto-response ---
-            const pluginLabel = labels.find(l => l.startsWith('plugin:'));
-            const comments = [];
+            // =====================
+            // 3. AUTO-RESPONSE
+            // =====================
 
-            // Detect server-side error patterns
-            const serverSidePatterns = [
-              'UNKNOWN_EXCEPTION',
-              'Internal Salesforce Error',
-              'INSUFFICIENT_ACCESS',
-              'INVALID_OPERATION',
-              'INVALID_SESSION_ID',
-              'SERVER_UNAVAILABLE',
-              'REQUEST_LIMIT_EXCEEDED',
-            ];
-            const bodyUpper = body.toUpperCase();
-            const matchedServerError = serverSidePatterns.find(p => bodyUpper.includes(p.toUpperCase()));
-
-            if (matchedServerError) {
-              labels.push('possibly:server-side');
-            }
-
-            // Plugin-specific ownership
-            const teamOwnership = {
-              'plugin:agent': 'Agentforce DX',
-              'plugin:devops-center': 'DevOps',
-              'plugin:signups': 'Signups',
-              'plugin:packaging': 'Packaging',
-            };
-
-            const owningTeam = teamOwnership[pluginLabel];
-
+            // Team ownership message
             if (owningTeam) {
-              labels.push('owned by another team');
-
               let msg = `ℹ️ This command is owned by the **${owningTeam}** team.`;
               if (matchedServerError) {
                 msg += ` The error \`${matchedServerError}\` also suggests this may be a server-side issue.`;
@@ -232,7 +254,7 @@ jobs:
               );
             }
 
-            // Needs info — tell them which fields
+            // Missing fields message
             if (missingFields.length > 0) {
               const fieldList = missingFields.map(f => `- **${f}**`).join('\n');
               comments.push(
@@ -241,7 +263,7 @@ jobs:
               );
             }
 
-            // --- Post comment ---
+            // Post comment
             if (comments.length > 0) {
               const header = 'Thank you for filing this issue. We appreciate your feedback and will review the issue as soon as possible. ' +
                 'Remember, however, that GitHub isn\'t a mechanism for receiving support under any agreement or SLA. ' +
@@ -255,24 +277,4 @@ jobs:
               });
             }
 
-            // --- Apply any late-added labels ---
-            const lateLabels = [...new Set(labels.filter(l => l === 'possibly:server-side' || l === 'owned by another team'))];
-            for (const name of lateLabels) {
-              const config = labelColors[name] || { color: 'ededed', description: '' };
-              try {
-                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name });
-                await github.rest.issues.updateLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color: config.color, description: config.description });
-              } catch (e) {
-                if (e.status === 404) {
-                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color: config.color, description: config.description });
-                }
-              }
-            }
-            if (lateLabels.length > 0) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                labels: lateLabels,
-              });
-            }
+            console.log(`Labels applied: ${uniqueLabels.join(', ') || 'none'}`);
