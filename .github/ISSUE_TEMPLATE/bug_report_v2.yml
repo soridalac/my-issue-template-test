@@ -62,6 +62,15 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: last-working-version
+    attributes:
+      label: Last working version
+      description: If this worked before, which CLI version was it working on?
+      placeholder: "@salesforce/cli/2.148.0"
+    validations:
+      required: false
+
   - type: textarea
     id: summary
     attributes:
