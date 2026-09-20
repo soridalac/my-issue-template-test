@@ -50,6 +50,9 @@ jobs:
               'apex get': 'plugin:apex',
               'apex log': 'plugin:apex',
               'apex test': 'plugin:apex',
+              'project deploy pipeline': 'plugin:devops-center',
+              'project deploy validate': 'plugin:devops-center',
+              'devops': 'plugin:devops-center',
               'package': 'plugin:packaging',
               'agent': 'plugin:agent',
               'lightning': 'plugin:lightning-dev',
@@ -101,6 +104,7 @@ jobs:
               'plugin:lightning-dev':   { color: '1d76db', description: 'Lightning dev commands' },
               'plugin:schema':          { color: '1d76db', description: 'Schema commands' },
               'plugin:sobject':         { color: '1d76db', description: 'SObject commands' },
+              'plugin:devops-center':   { color: '1d76db', description: 'DevOps Center commands' },
               'org:scratch':            { color: '0e8a16', description: 'Scratch org' },
               'org:sandbox':            { color: '0e8a16', description: 'Sandbox org' },
               'org:production':         { color: '0e8a16', description: 'Production org' },
@@ -149,6 +153,96 @@ jobs:
                 labels: uniqueLabels,
               });
               console.log(`Applied labels: ${uniqueLabels.join(', ')}`);
-            } else {
-              console.log('No labels matched');
+            }
+
+            // --- Auto-response ---
+            const pluginLabel = labels.find(l => l.startsWith('plugin:'));
+            const comments = [];
+
+            // Detect server-side error patterns
+            const serverSidePatterns = [
+              'UNKNOWN_EXCEPTION',
+              'Internal Salesforce Error',
+              'INSUFFICIENT_ACCESS',
+              'INVALID_OPERATION',
+              'INVALID_SESSION_ID',
+              'SERVER_UNAVAILABLE',
+              'REQUEST_LIMIT_EXCEEDED',
+            ];
+            const bodyUpper = body.toUpperCase();
+            const matchedServerError = serverSidePatterns.find(p => bodyUpper.includes(p.toUpperCase()));
+
+            if (matchedServerError) {
+              labels.push('possibly:server-side');
+              comments.push(
+                `⚠️ The error \`${matchedServerError}\` typically originates from the Salesforce server, not the CLI. ` +
+                `We'll investigate to confirm, but this may need to be reported to [Salesforce Support](https://help.salesforce.com) if it's a server-side issue.`
+              );
+            }
+
+            // Plugin-specific ownership hints
+            if (pluginLabel === 'plugin:agent') {
+              comments.push(
+                `ℹ️ Agent commands are owned by the Agentforce DX team. ` +
+                `If the error originates from the Agentforce platform APIs, this may need to be routed to them. ` +
+                `We'll investigate and route accordingly.`
+              );
+            }
+
+            if (pluginLabel === 'plugin:devops-center') {
+              comments.push(
+                `ℹ️ DevOps Center commands are owned by the DevOps team. ` +
+                `If the error originates from the DevOps Center service, this may need to be routed to them. ` +
+                `We'll investigate and route accordingly.`
+              );
+            }
+
+            if (pluginLabel === 'plugin:signups') {
+              comments.push(
+                `ℹ️ Scratch org, sandbox, shape, and snapshot creation are managed by the Signups service. ` +
+                `If the error originates from the server during org creation, this may need to be routed to the Signups team. ` +
+                `We'll investigate and route accordingly.`
+              );
+            }
+
+            if (pluginLabel === 'plugin:packaging') {
+              comments.push(
+                `ℹ️ Packaging commands are owned by the Packaging team. ` +
+                `If the error originates from the packaging service, this may need to be routed to them. ` +
+                `We'll investigate and route accordingly.`
+              );
+            }
+
+            // --- Post comment ---
+            if (comments.length > 0) {
+              const header = 'Thank you for filing this issue. We appreciate your feedback and will review the issue as soon as possible. ' +
+                'Remember, however, that GitHub isn\'t a mechanism for receiving support under any agreement or SLA. ' +
+                'If you require immediate assistance, contact [Salesforce Customer Support](https://help.salesforce.com).';
+              const commentBody = header + '\n\n---\n\n' + comments.join('\n\n---\n\n');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody,
+              });
+            }
+
+            // --- Apply any new labels (possibly:server-side) ---
+            const newLabels = labels.filter(l => l === 'possibly:server-side');
+            if (newLabels.length > 0) {
+              const pssConfig = { color: 'e99695', description: 'May be a server-side issue, not CLI' };
+              try {
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side' });
+                await github.rest.issues.updateLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side', ...pssConfig });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: 'possibly:server-side', ...pssConfig });
+                }
+              }
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['possibly:server-side'],
+              });
             }
