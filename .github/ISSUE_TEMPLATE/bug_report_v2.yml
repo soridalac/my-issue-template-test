@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a bug with the Salesforce CLI
+title: "[Bug]: "
+labels: ["type:bug"]
+body:
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: Which sf command did you run?
+      placeholder: "sf project retrieve start -m PermissionSet:sysadmin"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: org-type
+    attributes:
+      label: Org Type
+      options:
+        - Production
+        - Sandbox
+        - Scratch Org
+        - Developer Edition
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Short description of the problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: Minimal steps to reproduce the issue
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Message or Output
+      description: Paste the full error message, stack trace, or unexpected output
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System Information
+      description: Paste output of `sf version --verbose --json`
+      render: json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: doctor
+    attributes:
+      label: Did you run sf doctor?
+      options:
+        - "Yes - passed"
+        - "Yes - failed"
+        - "No"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Screenshots, repro repo link, or other context
+    validations:
+      required: false
