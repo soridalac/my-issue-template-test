@@ -88,9 +88,60 @@ jobs:
             const stepsMatch = body.match(/### Steps To Reproduce\s*\n\s*(.+)/);
             if (!stepsMatch || stepsMatch[1].trim() === '') labels.push('needs-info');
 
-            // --- Apply labels ---
+            // --- Label colors ---
+            const labelColors = {
+              'plugin:deploy-retrieve': { color: '1d76db', description: 'Deploy and retrieve commands' },
+              'plugin:auth':            { color: '1d76db', description: 'Auth and login commands' },
+              'plugin:org':             { color: '1d76db', description: 'Org management commands' },
+              'plugin:data':            { color: '1d76db', description: 'Data commands' },
+              'plugin:apex':            { color: '1d76db', description: 'Apex commands' },
+              'plugin:packaging':       { color: '1d76db', description: 'Packaging commands' },
+              'plugin:agent':           { color: '1d76db', description: 'Agent/AFDX commands' },
+              'plugin:signups':         { color: '1d76db', description: 'Scratch org and sandbox creation' },
+              'plugin:lightning-dev':   { color: '1d76db', description: 'Lightning dev commands' },
+              'plugin:schema':          { color: '1d76db', description: 'Schema commands' },
+              'plugin:sobject':         { color: '1d76db', description: 'SObject commands' },
+              'org:scratch':            { color: '0e8a16', description: 'Scratch org' },
+              'org:sandbox':            { color: '0e8a16', description: 'Sandbox org' },
+              'org:production':         { color: '0e8a16', description: 'Production org' },
+              'regression':             { color: 'd93f0b', description: 'Worked before, now broken' },
+              'needs-info':             { color: 'fbca04', description: 'Missing required information' },
+            };
+
+            // --- Ensure labels exist with correct colors ---
             if (labels.length > 0) {
               const uniqueLabels = [...new Set(labels)];
+
+              for (const name of uniqueLabels) {
+                const config = labelColors[name] || { color: 'ededed', description: '' };
+                try {
+                  await github.rest.issues.getLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name,
+                  });
+                  // Label exists — update color if needed
+                  await github.rest.issues.updateLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name,
+                    color: config.color,
+                    description: config.description,
+                  });
+                } catch (e) {
+                  if (e.status === 404) {
+                    await github.rest.issues.createLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      name,
+                      color: config.color,
+                      description: config.description,
+                    });
+                  }
+                }
+              }
+
+              // --- Apply labels ---
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
