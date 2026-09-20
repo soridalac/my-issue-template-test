@@ -50,6 +50,18 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Did this work before?
+      options:
+        - "Yes, after a CLI update"
+        - "Yes, it stopped recently"
+        - "No, first time trying"
+        - "Not sure"
+    validations:
+      required: true
+
   - type: textarea
     id: summary
     attributes:
