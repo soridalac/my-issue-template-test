@@ -83,13 +83,41 @@ jobs:
 
             if (regression.startsWith('Yes')) labels.push('regression');
 
-            // --- Check for missing system info ---
-            const sysInfoMatch = body.match(/### System Information\s*\n\s*```[\s\S]*?```/);
-            if (!sysInfoMatch) labels.push('needs-info');
+            // --- Check for low-quality or missing required fields ---
+            const lowEffortPatterns = /^(n\/?a|na|none|no|test|asdf|xxx|\.|-|—|tbd|todo|see above|see title|same)$/i;
 
-            // --- Check for missing steps ---
-            const stepsMatch = body.match(/### Steps To Reproduce\s*\n\s*(.+)/);
-            if (!stepsMatch || stepsMatch[1].trim() === '') labels.push('needs-info');
+            function isLowEffort(text) {
+              if (!text) return true;
+              const cleaned = text.replace(/[`#*_\s]/g, '').trim();
+              if (cleaned.length < 10) return true;
+              if (lowEffortPatterns.test(cleaned)) return true;
+              return false;
+            }
+
+            function extractSection(sectionName) {
+              const regex = new RegExp(`### ${sectionName}\\s*\\n\\s*([\\s\\S]*?)(?=###|$)`);
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            }
+
+            const missingFields = [];
+
+            const summary = extractSection('Summary');
+            if (isLowEffort(summary)) missingFields.push('Summary');
+
+            const steps = extractSection('Steps To Reproduce');
+            if (isLowEffort(steps)) missingFields.push('Steps To Reproduce');
+
+            const expected = extractSection('Expected Result');
+            if (isLowEffort(expected)) missingFields.push('Expected Result');
+
+            const actual = extractSection('Actual Result');
+            if (isLowEffort(actual)) missingFields.push('Actual Result');
+
+            const sysInfoMatch = body.match(/### System Information\s*\n\s*```[\s\S]*?```/);
+            if (!sysInfoMatch) missingFields.push('System Information');
+
+            if (missingFields.length > 0) labels.push('needs-info');
 
             // --- Label colors ---
             const labelColors = {
@@ -201,6 +229,15 @@ jobs:
               comments.push(
                 `⚠️ The error \`${matchedServerError}\` typically originates from the Salesforce server, not the CLI. ` +
                 `We'll investigate to confirm, but this may need to be reported to [Salesforce Support](https://help.salesforce.com) if it's a server-side issue.`
+              );
+            }
+
+            // Needs info — tell them which fields
+            if (missingFields.length > 0) {
+              const fieldList = missingFields.map(f => `- **${f}**`).join('\n');
+              comments.push(
+                `⚠️ The following fields are missing or need more detail:\n${fieldList}\n\n` +
+                `Please update your issue with this information so we can investigate.`
               );
             }
 
