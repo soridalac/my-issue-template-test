@@ -2,12 +2,22 @@ name: Bug Report
 description: Report a bug with the Salesforce CLI
 title: "[Bug]: "
 labels: ["type:bug"]
+type: bug
 body:
   - type: markdown
     attributes:
       value: |
         > **NOTICE:** GitHub is not a mechanism for receiving support under any agreement or SLA.
         > If you require immediate assistance, please use [official support channels](https://help.salesforce.com).
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Is there an existing issue for this?
+      description: Please search [existing issues](https://github.com/forcedotcom/cli/issues) before filing a new one.
+      options:
+        - label: I have searched the existing issues
+          required: true
 
   - type: input
     id: command
@@ -53,10 +63,10 @@ body:
     attributes:
       label: Steps To Reproduce
       description: Minimal steps to reproduce the issue
-      value: |
-        1.
-        2.
-        3.
+      placeholder: |
+        1. Run `sf project retrieve start -m ...`
+        2. Open the retrieved file
+        3. Notice the missing field
     validations:
       required: true
 
@@ -78,7 +88,7 @@ body:
     id: error-output
     attributes:
       label: Error Message or Output
-      description: Paste the full error message, stack trace, or unexpected output
+      description: Paste the full error message, stack trace, or unexpected output. This will be automatically formatted into code.
       render: shell
     validations:
       required: false
@@ -87,7 +97,7 @@ body:
     id: system-info
     attributes:
       label: System Information
-      description: Paste output of `sf version --verbose --json`
+      description: Paste the **full** output of `sf version --verbose --json`
       render: json
     validations:
       required: true
@@ -107,6 +117,12 @@ body:
     id: additional
     attributes:
       label: Additional Information
-      description: Screenshots, repro repo link, or other context
+      description: Any other context about the problem
+
+  - type: upload
+    id: screenshots
+    attributes:
+      label: Screenshots or log files
+      description: Drag and drop any relevant screenshots or log files.
     validations:
       required: false
