@@ -1,0 +1,103 @@
+name: Auto Label Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            const labels = [];
+
+            // --- Parse command → plugin label ---
+            const commandMatch = body.match(/### Command\s*\n\s*(.+)/);
+            const command = commandMatch ? commandMatch[1].trim().toLowerCase() : '';
+
+            const commandToPlugin = {
+              'project deploy': 'plugin:deploy-retrieve',
+              'project retrieve': 'plugin:deploy-retrieve',
+              'project convert': 'plugin:deploy-retrieve',
+              'project delete': 'plugin:deploy-retrieve',
+              'org create scratch': 'plugin:signups',
+              'org create sandbox': 'plugin:signups',
+              'org create shape': 'plugin:signups',
+              'org create snapshot': 'plugin:signups',
+              'org create': 'plugin:org',
+              'org open': 'plugin:org',
+              'org list': 'plugin:org',
+              'org display': 'plugin:org',
+              'org delete': 'plugin:org',
+              'org resume': 'plugin:org',
+              'org login': 'plugin:auth',
+              'org logout': 'plugin:auth',
+              'auth': 'plugin:auth',
+              'data query': 'plugin:data',
+              'data export': 'plugin:data',
+              'data import': 'plugin:data',
+              'data bulk': 'plugin:data',
+              'data create': 'plugin:data',
+              'data update': 'plugin:data',
+              'data delete': 'plugin:data',
+              'data upsert': 'plugin:data',
+              'apex run': 'plugin:apex',
+              'apex get': 'plugin:apex',
+              'apex log': 'plugin:apex',
+              'apex test': 'plugin:apex',
+              'package': 'plugin:packaging',
+              'agent': 'plugin:agent',
+              'lightning': 'plugin:lightning-dev',
+              'schema': 'plugin:schema',
+              'sobject': 'plugin:sobject',
+            };
+
+            // Match longest prefix first
+            const sortedKeys = Object.keys(commandToPlugin).sort((a, b) => b.length - a.length);
+            for (const key of sortedKeys) {
+              if (command.includes(key)) {
+                labels.push(commandToPlugin[key]);
+                break;
+              }
+            }
+
+            // --- Parse org type ---
+            const orgMatch = body.match(/### Org Type\s*\n\s*(.+)/);
+            const orgType = orgMatch ? orgMatch[1].trim() : '';
+
+            if (orgType === 'Scratch Org') labels.push('org:scratch');
+            if (orgType === 'Sandbox') labels.push('org:sandbox');
+            if (orgType === 'Production') labels.push('org:production');
+
+            // --- Parse regression ---
+            const regressionMatch = body.match(/### Did this work before\?\s*\n\s*(.+)/);
+            const regression = regressionMatch ? regressionMatch[1].trim() : '';
+
+            if (regression.startsWith('Yes')) labels.push('regression');
+
+            // --- Check for missing system info ---
+            const sysInfoMatch = body.match(/### System Information\s*\n\s*```[\s\S]*?```/);
+            if (!sysInfoMatch) labels.push('needs-info');
+
+            // --- Check for missing steps ---
+            const stepsMatch = body.match(/### Steps To Reproduce\s*\n\s*(.+)/);
+            if (!stepsMatch || stepsMatch[1].trim() === '') labels.push('needs-info');
+
+            // --- Apply labels ---
+            if (labels.length > 0) {
+              const uniqueLabels = [...new Set(labels)];
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: uniqueLabels,
+              });
+              console.log(`Applied labels: ${uniqueLabels.join(', ')}`);
+            } else {
+              console.log('No labels matched');
+            }
