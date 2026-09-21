@@ -87,7 +87,7 @@ jobs:
             const regressionMatch = body.match(/### Did this work before\?\s*\n\s*(.+)/);
             const regression = regressionMatch ? regressionMatch[1].trim() : '';
 
-            if (regression.startsWith('Yes')) labels.push('regression');
+            if (regression === 'Yes, this is a regression') labels.push('regression');
 
             // --- Detect server-side error patterns ---
             const serverSidePatterns = [
@@ -121,12 +121,12 @@ jobs:
             }
 
             // --- Check for low-quality or missing required fields ---
-            const lowEffortPatterns = /^(n\/?a|na|none|no|test|asdf|xxx|\.|-|—|tbd|todo|see above|see title|same)$/i;
+            const lowEffortPatterns = /^(n\/?a|na|none|no|test|asdf|xxx|\.|-|—|tbd|todo|see above|see title|same|not working|doesn'?t work|it works|it doesn'?t|it should work|it should|broken|bug|error|help|please help|fix|run the command)$/i;
 
             function isLowEffort(text) {
               if (!text) return true;
               const cleaned = text.replace(/[`#*_\s]/g, '').trim();
-              if (cleaned.length < 10) return true;
+              if (cleaned.length < 20) return true;
               if (lowEffortPatterns.test(cleaned)) return true;
               return false;
             }
@@ -263,18 +263,18 @@ jobs:
               );
             }
 
-            // Post comment
-            if (comments.length > 0) {
-              const header = 'Thank you for filing this issue. We appreciate your feedback and will review the issue as soon as possible. ' +
-                'Remember, however, that GitHub isn\'t a mechanism for receiving support under any agreement or SLA. ' +
-                'If you require immediate assistance, contact [Salesforce Customer Support](https://help.salesforce.com).';
-              const commentBody = header + '\n\n---\n\n' + comments.join('\n\n---\n\n');
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: commentBody,
-              });
-            }
+            // Post comment — always respond
+            const header = 'Thank you for filing this issue. We appreciate your feedback and will review the issue as soon as possible. ' +
+              'Remember, however, that GitHub isn\'t a mechanism for receiving support under any agreement or SLA. ' +
+              'If you require immediate assistance, contact [Salesforce Customer Support](https://help.salesforce.com).';
+            const commentBody = comments.length > 0
+              ? header + '\n\n---\n\n' + comments.join('\n\n---\n\n')
+              : header;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody,
+            });
 
             console.log(`Labels applied: ${uniqueLabels.join(', ') || 'none'}`);

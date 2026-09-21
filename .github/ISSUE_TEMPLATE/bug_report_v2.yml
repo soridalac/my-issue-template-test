@@ -33,7 +33,7 @@ body:
     attributes:
       label: Command
       description: Which sf command did you run?
-      placeholder: "sf project retrieve start -m PermissionSet:sysadmin"
+      placeholder: "sf <command>"
     validations:
       required: true
 
@@ -55,9 +55,8 @@ body:
     attributes:
       label: Did this work before?
       options:
-        - "Yes, after a CLI update"
-        - "Yes, it stopped recently"
-        - "No, first time trying"
+        - "Yes, this is a regression"
+        - "No, this is a new bug"
         - "Not sure"
     validations:
       required: true
@@ -66,8 +65,8 @@ body:
     id: last-working-version
     attributes:
       label: Last working version
-      description: If this worked before, which CLI version was it working on?
-      placeholder: "@salesforce/cli/2.148.0"
+      description: If you selected "Yes, this is a regression" above, which CLI version was it last working on?
+      placeholder: "2.XXX.X"
     validations:
       required: false
 
@@ -75,7 +74,7 @@ body:
     id: summary
     attributes:
       label: Summary
-      description: Short description of the problem
+      placeholder: "Short summary of what's going on or to provide context"
     validations:
       required: true
 
@@ -83,8 +82,8 @@ body:
     id: repro-repo
     attributes:
       label: Repository to reproduce
-      description: "If not reproducible with [dreamhouse-lwc](https://github.com/dreamhouseapp/dreamhouse-lwc), we require a link to a simple project repo with a script to setup a scratch org that reproduces your problem."
-      placeholder: "https://github.com/dreamhouseapp/dreamhouse-lwc"
+      description: "Provide a repo if possible. Generate one with `sf project generate` or fork [dreamhouse-lwc](https://github.com/trailheadapps/dreamhouse-lwc). If you can't provide a repo, explain why in the steps below."
+      placeholder: "https://github.com/your-org/your-repo"
     validations:
       required: false
 
@@ -92,11 +91,11 @@ body:
     id: steps
     attributes:
       label: Steps To Reproduce
-      description: Minimal steps to reproduce the issue
+      description: Provide detailed step-by-step instructions. The more info from the start, the faster we can resolve your issue.
       placeholder: |
-        1. Run `sf project retrieve start -m ...`
-        2. Open the retrieved file
-        3. Notice the missing field
+        1. Run `sf ...`
+        2. ...
+        3. ...
     validations:
       required: true
 
@@ -109,6 +108,7 @@ body:
     id: expected
     attributes:
       label: Expected Result
+      placeholder: "Describe what should have happened"
     validations:
       required: true
 
@@ -116,6 +116,7 @@ body:
     id: actual
     attributes:
       label: Actual Result
+      placeholder: "Describe what actually happened"
     validations:
       required: true
 
@@ -132,7 +133,7 @@ body:
     id: additional
     attributes:
       label: Additional Information
-      description: Any other context about the problem
+      placeholder: "Any other context about the problem"
 
   - type: upload
     id: screenshots
