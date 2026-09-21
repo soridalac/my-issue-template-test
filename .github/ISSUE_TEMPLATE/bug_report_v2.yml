@@ -120,15 +120,6 @@ body:
       required: true
 
   - type: textarea
-    id: error-output
-    attributes:
-      label: Error Message or Output
-      description: Paste the full error message, stack trace, or unexpected output. For more detail, re-run your command with `--dev-debug` and paste the output. **Redact any tokens or sensitive information.** This will be automatically formatted into code.
-      render: shell
-    validations:
-      required: false
-
-  - type: textarea
     id: system-info
     attributes:
       label: System Information
@@ -144,9 +135,9 @@ body:
       description: Any other context about the problem
 
   - type: upload
-    id: screenshots
+    id: error-output-and-screenshots
     attributes:
-      label: Screenshots or log files
-      description: Drag and drop any relevant screenshots or log files.
+      label: Error output, screenshots, or log files
+      description: Drag and drop error output, screenshots, or log files. For more detail, re-run your command with `--dev-debug` and attach the output. **Redact any tokens or sensitive information.**
     validations:
       required: false
