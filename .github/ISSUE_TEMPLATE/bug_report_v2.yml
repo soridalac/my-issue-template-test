@@ -135,9 +135,9 @@ body:
       description: Any other context about the problem
 
   - type: upload
-    id: error-output-and-screenshots
+    id: screenshots
     attributes:
-      label: Error output, screenshots, or log files
-      description: Drag and drop error output, screenshots, or log files. For more detail, re-run your command with `--dev-debug` and attach the output. **Redact any tokens or sensitive information.**
+      label: Screenshots or log files
+      description: Drag and drop any relevant screenshots or log files. **Redact any sensitive information before sharing.**
     validations:
       required: false
