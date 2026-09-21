@@ -11,13 +11,16 @@ body:
         > If you require immediate assistance, please use [official support channels](https://help.salesforce.com).
 
   - type: checkboxes
-    id: existing-issue
+    id: pre-submit
     attributes:
-      label: Existing issues
-      description: Please search [existing issues](https://github.com/forcedotcom/cli/issues) before filing a new one.
+      label: Before you submit
       options:
-        - label: I have searched the existing issues
+        - label: I am using the latest version of Salesforce CLI
           required: true
+        - label: I have searched the [existing issues](https://github.com/forcedotcom/cli/issues)
+          required: true
+        - label: I have run `sf doctor` to diagnose common issues
+          required: false
 
   - type: input
     id: related-issue
