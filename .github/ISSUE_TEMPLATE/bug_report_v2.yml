@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report a bug with the Salesforce CLI
-title: "[Bug]: "
-labels: ["type:bug"]
+title: "[BUG]: "
+labels: ["investigating"]
 type: bug
 body:
   - type: markdown
@@ -142,6 +142,6 @@ body:
     id: screenshots
     attributes:
       label: Screenshots or log files
-      description: Drag and drop any relevant screenshots or log files. **Redact any sensitive information before sharing.**
+      description: Drag and drop any relevant screenshots or log files. Use `--dev-debug` for more detailed error output. **Redact any sensitive information before sharing.**
     validations:
       required: false
